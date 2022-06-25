@@ -24,7 +24,7 @@ LOCAL_STATIC_ANDROID_LIBRARIES := \
     androidx.core_core \
     androidx.preference_preference \
     SettingsLib \
-    vendor.xiaomi.hardware.touchfeature-V1.0-java
+    //hardware/xiaomi:vendor.xiaomi.hardware.touchfeature-V1.0-java
 
 LOCAL_RESOURCE_DIR := \
     $(LOCAL_PATH)/res \
