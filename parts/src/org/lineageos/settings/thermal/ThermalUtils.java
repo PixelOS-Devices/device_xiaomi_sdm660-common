@@ -27,8 +27,10 @@ import android.view.Surface;
 import android.view.WindowManager;
 
 import androidx.preference.PreferenceManager;
+import java.util.NoSuchElementException;
 
 import org.lineageos.settings.utils.FileUtils;
+import vendor.xiaomi.hardware.touchfeature.V1_0.ITouchFeature;
 
 public final class ThermalUtils {
 
@@ -58,8 +60,12 @@ public final class ThermalUtils {
     private static final String THERMAL_STREAMING = "thermal.streaming=";
 
     private static final String THERMAL_SCONFIG = "/sys/class/thermal/thermal_message/sconfig";
+    private static final String PROP_GAME_MODE = "sys.performance.level";
+
+    private boolean mTouchModeChanged;
 
     private Display mDisplay;
+    private ITouchFeature mTouchFeature = null;
     private SharedPreferences mSharedPrefs;
 
     protected ThermalUtils(Context context) {
@@ -67,6 +73,15 @@ public final class ThermalUtils {
 
         WindowManager mWindowManager = context.getSystemService(WindowManager.class);
         mDisplay = mWindowManager.getDefaultDisplay();
+
+        try {
+            mTouchFeature = ITouchFeature.getService();
+        } catch (RemoteException e) {
+            // Do nothing
+        } catch (NoSuchElementException e) {
+            // Do nothing
+        }
+
     }
 
     public static void startService(Context context) {
@@ -152,6 +167,7 @@ public final class ThermalUtils {
         String value = getValue();
         String modes[];
         String state = THERMAL_STATE_DEFAULT;
+        boolean isInGameMode = SystemProperties.getInt(PROP_GAME_MODE, -1) > 0;
 
         if (value != null) {
             modes = value.split(":");
@@ -170,7 +186,90 @@ public final class ThermalUtils {
                 state = THERMAL_STATE_STREAMING;
             }
         }
+        if (!isInGameMode) {
+            FileUtils.writeLine(THERMAL_SCONFIG, state);
+        }
 
-        FileUtils.writeLine(THERMAL_SCONFIG, state);
+        if (state == THERMAL_STATE_BENCHMARK || state == THERMAL_STATE_GAMING) {
+            updateTouchModes(packageName);
+        } else if (mTouchModeChanged) {
+            resetTouchModes();
+        }
+    }
+
+    private void updateTouchModes(String packageName) {
+        String values = mSharedPrefs.getString(packageName, null);
+        resetTouchModes();
+
+        if (values == null || values.isEmpty()) {
+            return;
+        }
+
+        String[] value = values.split(",");
+        int gameMode = Integer.parseInt(value[Constants.TOUCH_GAME_MODE]);
+        int touchResponse = Integer.parseInt(value[Constants.TOUCH_RESPONSE]);
+        int touchSensitivity = Integer.parseInt(value[Constants.TOUCH_SENSITIVITY]);
+        int touchResistant = Integer.parseInt(value[Constants.TOUCH_RESISTANT]);
+        int touchActiveMode = (touchResponse != 0 && touchSensitivity != 0 && touchResistant != 0)
+                ? 1 : 0;
+        try {
+            mTouchFeature.setTouchMode(Constants.MODE_TOUCH_TOLERANCE, touchSensitivity);
+            mTouchFeature.setTouchMode(Constants.MODE_TOUCH_UP_THRESHOLD, touchResponse);
+            mTouchFeature.setTouchMode(Constants.MODE_TOUCH_EDGE_FILTER, touchResistant);
+            mTouchFeature.setTouchMode(Constants.MODE_TOUCH_GAME_MODE, gameMode);
+            mTouchFeature.setTouchMode(Constants.MODE_TOUCH_ACTIVE_MODE, touchActiveMode);
+        } catch (RemoteException e) {
+            // Do nothing
+        }
+
+        mTouchModeChanged = true;
+        updateTouchRotation();
+    }
+
+    protected void resetTouchModes() {
+        if (!mTouchModeChanged) {
+            return;
+        }
+
+        try {
+            mTouchFeature.resetTouchMode(Constants.MODE_TOUCH_GAME_MODE);
+            mTouchFeature.resetTouchMode(Constants.MODE_TOUCH_ACTIVE_MODE);
+            mTouchFeature.resetTouchMode(Constants.MODE_TOUCH_UP_THRESHOLD);
+            mTouchFeature.resetTouchMode(Constants.MODE_TOUCH_TOLERANCE);
+            mTouchFeature.resetTouchMode(Constants.MODE_TOUCH_EDGE_FILTER);
+            mTouchFeature.resetTouchMode(Constants.MODE_TOUCH_ROTATION);
+        } catch (RemoteException e) {
+            // Do nothing
+        }
+
+        mTouchModeChanged = false;
+    }
+
+    protected void updateTouchRotation() {
+        if (!mTouchModeChanged) {
+            return;
+        }
+
+        int touchRotation = 0;
+        switch (mDisplay.getRotation()) {
+            case Surface.ROTATION_0:
+                touchRotation = 0;
+                break;
+            case Surface.ROTATION_90:
+                touchRotation = 1;
+                break;
+            case Surface.ROTATION_180:
+                touchRotation = 2;
+                break;
+            case Surface.ROTATION_270:
+                touchRotation = 3;
+                break;
+        }
+
+        try {
+            mTouchFeature.setTouchMode(Constants.MODE_TOUCH_ROTATION, touchRotation);
+        } catch (RemoteException e) {
+            // Do nothing
+        }
     }
 }
