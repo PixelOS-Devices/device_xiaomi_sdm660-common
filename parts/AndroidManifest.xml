@@ -58,7 +58,7 @@
         </activity>
 
         <activity
-            android:name=".thermal.ThermalSettingsActivity"
+            android:name=".thermal.ThermalActivity"
             android:label="@string/thermal_title"
             android:icon="@drawable/ic_thermal_settings"
             android:theme="@style/Theme.SubSettingsBase">

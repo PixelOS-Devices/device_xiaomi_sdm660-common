@@ -1,19 +1,18 @@
 /**
  * Copyright (C) 2020 The LineageOS Project
- *
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.lineageos.settings.thermal;
 
 import android.annotation.Nullable;
@@ -85,7 +84,7 @@ public class ThermalSettingsFragment extends PreferenceFragment
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
-            Bundle savedInstanceState) {
+                             Bundle savedInstanceState) {
         return inflater.inflate(R.layout.thermal_layout, container, false);
     }
 
@@ -102,8 +101,7 @@ public class ThermalSettingsFragment extends PreferenceFragment
     @Override
     public void onResume() {
         super.onResume();
-        final ActionBar actionBar = getActivity().getActionBar();
-        actionBar.setTitle(getResources().getString(R.string.thermal_title));
+        getActivity().setTitle(getResources().getString(R.string.thermal_title));
         rebuild();
     }
 
@@ -322,45 +320,36 @@ public class ThermalSettingsFragment extends PreferenceFragment
 
             holder.mode.setAdapter(new ModeAdapter(context));
             holder.mode.setOnItemSelectedListener(this);
-
-            holder.touchIcon.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    TouchSettingsFragment touchSettingsFragment = new TouchSettingsFragment();
-                    Bundle bundle = new Bundle();
-                    bundle.putString("appName", entry.label);
-                    bundle.putString("packageName", entry.info.packageName);
-                    touchSettingsFragment.setArguments(bundle);
-                    getActivity().getFragmentManager().beginTransaction()
-                            .replace(android.R.id.content, touchSettingsFragment, "touchSettingsFragment")
-                            .addToBackStack(null)
-                            .commit();
-                }
+            holder.touchIcon.setOnClickListener(v -> {
+                TouchSettingsFragment touchSettingsFragment = new TouchSettingsFragment();
+                Bundle bundle = new Bundle();
+                bundle.putString("appName", entry.label);
+                bundle.putString("packageName", entry.info.packageName);
+                touchSettingsFragment.setArguments(bundle);
+                getActivity().getFragmentManager().beginTransaction()
+                        .replace(R.id.content_frame, touchSettingsFragment, "touchSettingsFragment")
+                        .addToBackStack(null)
+                        .commit();
             });
 
             holder.title.setText(entry.label);
             holder.title.setOnClickListener(v -> holder.mode.performClick());
-
             mApplicationsState.ensureIcon(entry);
             holder.icon.setImageDrawable(entry.icon);
-
             int packageState = mThermalUtils.getStateForPackage(entry.info.packageName);
             holder.mode.setSelection(packageState, false);
             holder.mode.setTag(entry);
-            int stateIconDrawable = getStateDrawable(mThermalUtils.getStateForPackage(
-                    entry.info.packageName));
-            if (stateIconDrawable == R.drawable.ic_thermal_gaming ||
-                    stateIconDrawable == R.drawable.ic_thermal_benchmark) {
+            if (packageState == ThermalUtils.STATE_BENCHMARK ||
+                packageState == ThermalUtils.STATE_GAMING) {
                 holder.touchIcon.setVisibility(View.VISIBLE);
             } else {
-                holder.touchIcon.setVisibility(View.GONE);
+                holder.touchIcon.setVisibility(View.INVISIBLE);
             }
-            holder.stateIcon.setImageResource(stateIconDrawable);
-            return holder.rootView;
+            holder.stateIcon.setImageResource(getStateDrawable(packageState));
         }
 
         private void setEntries(List<ApplicationsState.AppEntry> entries,
-                List<String> sections, List<Integer> positions) {
+                                List<String> sections, List<Integer> positions) {
             mEntries = entries;
             mSections = sections.toArray(new String[sections.size()]);
             mPositions = new int[positions.size()];
