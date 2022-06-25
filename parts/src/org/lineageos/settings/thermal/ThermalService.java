@@ -69,12 +69,6 @@ public class ThermalService extends Service {
     public IBinder onBind(Intent intent) {
         return null;
     }
-
-    @Override
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-        mThermalUtils.updateTouchRotation();
-    }
     
     private void registerReceiver() {
         IntentFilter filter = new IntentFilter();
