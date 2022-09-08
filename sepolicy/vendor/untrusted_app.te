@@ -15,3 +15,4 @@ allow untrusted_app proc_zoneinfo:file { read };
 allow untrusted_app system_lib_file:file { execmod };
 allow untrusted_app vendor_persist_camera_prop:file { read };
 allow untrusted_app zygote:unix_stream_socket { getopt };
+

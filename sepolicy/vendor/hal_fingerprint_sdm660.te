@@ -32,3 +32,4 @@ dontaudit hal_fingerprint_default storage_file:dir search;
 allow hal_fingerprint_sdm660 system_prop:file { read };
 
 allow hal_fingerprint_sdm660 rootfs:dir { read };
+

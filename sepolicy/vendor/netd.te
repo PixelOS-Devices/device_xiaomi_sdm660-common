@@ -1,1 +1,2 @@
 allow netd proc_net:file{ open };
+
